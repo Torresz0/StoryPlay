@@ -6,6 +6,7 @@ import { createNewChoice, createNewNode } from "../utils/nodeHelpers";
 
 export default function useStoryState() {
   const [nodes, setNodes, onNodesChange] = useNodesState(sampleStory.nodes);
+  const [variables, setVariables] = useState(sampleStory.variables || {});
   const [selectedNodeId, setSelectedNodeId] = useState(
     sampleStory.nodes[0]?.id ?? null
   );
@@ -55,9 +56,9 @@ export default function useStoryState() {
     const deletingId = selectedNodeId;
 
     setNodes((nds) => {
-      const filtered = nds.filter((node) => node.id !== deletingId);
+      const remainingNodes = nds.filter((node) => node.id !== deletingId);
 
-      return filtered.map((node) => ({
+      return remainingNodes.map((node) => ({
         ...node,
         data: {
           ...node.data,
@@ -83,12 +84,48 @@ export default function useStoryState() {
               ...node,
               data: {
                 ...node.data,
-                choices: [...(node.data?.choices || []), newChoice],
+                choices: [
+                  ...(node.data?.choices || []),
+                  {
+                    ...newChoice,
+                    conditions: [],
+                    effects: [],
+                  },
+                ],
               },
             }
           : node
       )
     );
+  }
+
+  function addChoiceToNode(nodeId) {
+    if (!nodeId) return;
+
+    const newChoice = createNewChoice();
+
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                choices: [
+                  ...(node.data?.choices || []),
+                  {
+                    ...newChoice,
+                    conditions: [],
+                    effects: [],
+                  },
+                ],
+              },
+            }
+          : node
+      )
+    );
+
+    setSelectedNodeId(nodeId);
   }
 
   function updateChoiceOnSelectedNode(choiceId, field, value) {
@@ -162,6 +199,8 @@ export default function useStoryState() {
                 id: crypto.randomUUID(),
                 label: "New choice",
                 targetNodeId: target,
+                conditions: [],
+                effects: [],
               },
             ],
           },
@@ -172,6 +211,8 @@ export default function useStoryState() {
 
   return {
     nodes,
+    variables,
+    setVariables,
     edges,
     selectedNode,
     selectedNodeId,
@@ -182,6 +223,7 @@ export default function useStoryState() {
     updateSelectedNodeField,
     deleteSelectedNode,
     addChoiceToSelectedNode,
+    addChoiceToNode,
     updateChoiceOnSelectedNode,
     removeChoiceFromSelectedNode,
     connectNodesFromHandle,
