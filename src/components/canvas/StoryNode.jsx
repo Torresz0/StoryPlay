@@ -76,6 +76,18 @@ function buildChoiceTitle(choice) {
   return parts.join(" • ");
 }
 
+function summarizeGraphIssues(issues = []) {
+  const hasError = issues.some((issue) => issue.severity === "error");
+  const hasWarning = issues.some((issue) => issue.severity === "warning");
+
+  const labels = [];
+
+  if (hasError) labels.push("error");
+  if (hasWarning) labels.push("warning");
+
+  return labels;
+}
+
 export default function StoryNode({ id, data, selected }) {
   const title = data?.title || "Untitled Block";
   const content = data?.content || "";
@@ -83,6 +95,7 @@ export default function StoryNode({ id, data, selected }) {
   const choices = data?.choices || [];
   const icon = BLOCK_TYPE_ICONS[blockType] || "📄";
   const indicators = collectIndicators(data);
+  const graphIssueLabels = summarizeGraphIssues(data?.graphIssues || []);
 
   const headerClass = `node-card-header ${
     blockType === "chat"
@@ -138,6 +151,19 @@ export default function StoryNode({ id, data, selected }) {
             {choices.length} choice{choices.length === 1 ? "" : "s"}
           </span>
         </div>
+
+        {graphIssueLabels.length > 0 && (
+          <div className="node-issue-strip">
+            {graphIssueLabels.map((label) => (
+              <span
+                key={label}
+                className={`node-issue-badge node-issue-${label}`}
+              >
+                {label === "error" ? "✕ issue" : "⚠ issue"}
+              </span>
+            ))}
+          </div>
+        )}
 
         {indicators.length > 0 && (
           <div className="node-indicator-strip">
