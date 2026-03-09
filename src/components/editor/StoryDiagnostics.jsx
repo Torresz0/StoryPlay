@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { analyzeStoryGraph } from "../../utils/graphHealth";
 
-export default function StoryDiagnostics({ nodes, variables }) {
+export default function StoryDiagnostics({
+  nodes,
+  variables,
+  onJumpToNode,
+}) {
   const issues = useMemo(() => {
     return analyzeStoryGraph(nodes, variables);
   }, [nodes, variables]);
@@ -13,21 +17,34 @@ export default function StoryDiagnostics({ nodes, variables }) {
       </div>
 
       <div className="diagnostics-list">
-        {issues.map((issue, index) => (
-          <div
-            key={`${issue.message}-${index}`}
-            className={`diagnostic-item diagnostic-${issue.severity}`}
-          >
-            <div className="diagnostic-badge">
-              {issue.severity === "error"
-                ? "Error"
-                : issue.severity === "warning"
-                ? "Warning"
-                : "OK"}
-            </div>
-            <div className="diagnostic-message">{issue.message}</div>
-          </div>
-        ))}
+        {issues.map((issue, index) => {
+          const isClickable = Boolean(issue.nodeId && onJumpToNode);
+
+          return (
+            <button
+              key={`${issue.message}-${index}`}
+              type="button"
+              className={`diagnostic-item diagnostic-${issue.severity} ${
+                isClickable ? "diagnostic-clickable" : ""
+              }`}
+              onClick={() => {
+                if (issue.nodeId && onJumpToNode) {
+                  onJumpToNode(issue.nodeId);
+                }
+              }}
+              disabled={!isClickable}
+            >
+              <div className="diagnostic-badge">
+                {issue.severity === "error"
+                  ? "Error"
+                  : issue.severity === "warning"
+                  ? "Warning"
+                  : "OK"}
+              </div>
+              <div className="diagnostic-message">{issue.message}</div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,42 +1,109 @@
 import { useMemo, useState } from "react";
-import { useNodesState } from "reactflow";
 import sampleStory from "../data/sampleStory";
-import { buildEdgesFromNodes } from "../utils/edgeHelpers";
-import { createNewChoice, createNewNode } from "../utils/nodeHelpers";
+
+function makeNodeId() {
+  return `node_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function makeChoiceLabel(targetTitle = "Next Block") {
+  return `Go to ${targetTitle}`;
+}
+
+function buildEdgesFromNodes(nodes) {
+  const edges = [];
+
+  for (const node of nodes) {
+    const choices = node?.data?.choices || [];
+
+    choices.forEach((choice, index) => {
+      if (!choice?.targetNodeId) return;
+
+      edges.push({
+        id: `${node.id}__${choice.targetNodeId}__${index}`,
+        source: node.id,
+        target: choice.targetNodeId,
+        type: "storyEdge",
+        data: {
+          label: choice.label || "",
+        },
+      });
+    });
+  }
+
+  return edges;
+}
+
+function normalizeInitialStory(story) {
+  const safeNodes = Array.isArray(story?.nodes) ? story.nodes : [];
+  const safeVariables =
+    story?.variables && typeof story.variables === "object"
+      ? story.variables
+      : {};
+
+  return {
+    nodes: safeNodes,
+    variables: safeVariables,
+  };
+}
 
 export default function useStoryState() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(sampleStory.nodes);
-  const [variables, setVariables] = useState(sampleStory.variables || {});
+  const initial = normalizeInitialStory(sampleStory);
+
+  const [nodes, setNodes] = useState(initial.nodes);
+  const [variables, setVariables] = useState(initial.variables);
   const [selectedNodeId, setSelectedNodeId] = useState(
-    sampleStory.nodes[0]?.id ?? null
+    initial.nodes[0]?.id || null
   );
 
-  const selectedNode = useMemo(
-    () => nodes.find((node) => node.id === selectedNodeId) ?? null,
-    [nodes, selectedNodeId]
-  );
+  const selectedNode = useMemo(() => {
+    return nodes.find((node) => node.id === selectedNodeId) || null;
+  }, [nodes, selectedNodeId]);
 
-  const edges = useMemo(() => buildEdgesFromNodes(nodes), [nodes]);
+  const edges = useMemo(() => {
+    return buildEdgesFromNodes(nodes);
+  }, [nodes]);
 
-  function addNode(position = null) {
-    const newNode = createNewNode(nodes.length);
+  function addNode() {
+    const nextId = makeNodeId();
 
-    const nodeWithPosition = position
-      ? {
-          ...newNode,
-          position,
-        }
-      : newNode;
+    const newNode = {
+      id: nextId,
+      position: {
+        x: 260 + nodes.length * 40,
+        y: 120 + nodes.length * 30,
+      },
+      data: {
+        title: "New Block",
+        content: "Write your story text here.",
+        blockType: "narrative",
+        choices: [],
+        enterEffects: [],
+        graphIssues: [],
+      },
+    };
 
-    setNodes((nds) => [...nds, nodeWithPosition]);
-    setSelectedNodeId(nodeWithPosition.id);
+    setNodes((prev) => [...prev, newNode]);
+    setSelectedNodeId(nextId);
+  }
+
+  function updateNodePosition(nodeId, position) {
+    setNodes((prev) =>
+      prev.map((node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              position,
+            }
+          : node
+      )
+    );
   }
 
   function updateSelectedNodeField(field, value) {
     if (!selectedNodeId) return;
 
-    setNodes((nds) =>
-      nds.map((node) =>
+    setNodes((prev) =>
+      prev.map((node) =>
         node.id === selectedNodeId
           ? {
               ...node,
@@ -53,141 +120,36 @@ export default function useStoryState() {
   function deleteSelectedNode() {
     if (!selectedNodeId) return;
 
-    const deletingId = selectedNodeId;
+    const nodeIdToDelete = selectedNodeId;
 
-    setNodes((nds) => {
-      const remainingNodes = nds.filter((node) => node.id !== deletingId);
+    setNodes((prev) => {
+      const filteredNodes = prev
+        .filter((node) => node.id !== nodeIdToDelete)
+        .map((node) => ({
+          ...node,
+          data: {
+            ...node.data,
+            choices: (node.data?.choices || []).filter(
+              (choice) => choice.targetNodeId !== nodeIdToDelete
+            ),
+          },
+        }));
 
-      return remainingNodes.map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          choices: (node.data?.choices || []).filter(
-            (choice) => choice.targetNodeId !== deletingId
-          ),
-        },
-      }));
+      const nextSelectedId = filteredNodes[0]?.id || null;
+      setSelectedNodeId(nextSelectedId);
+
+      return filteredNodes;
     });
-
-    setSelectedNodeId(null);
   }
 
   function addChoiceToSelectedNode() {
     if (!selectedNodeId) return;
 
-    const newChoice = createNewChoice();
-
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === selectedNodeId
-          ? {
-              ...node,
-              data: {
-                ...node.data,
-                choices: [
-                  ...(node.data?.choices || []),
-                  {
-                    ...newChoice,
-                    conditions: [],
-                    effects: [],
-                  },
-                ],
-              },
-            }
-          : node
-      )
-    );
-  }
-
-  function addChoiceToNode(nodeId) {
-    if (!nodeId) return;
-
-    const newChoice = createNewChoice();
-
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === nodeId
-          ? {
-              ...node,
-              data: {
-                ...node.data,
-                choices: [
-                  ...(node.data?.choices || []),
-                  {
-                    ...newChoice,
-                    conditions: [],
-                    effects: [],
-                  },
-                ],
-              },
-            }
-          : node
-      )
-    );
-
-    setSelectedNodeId(nodeId);
-  }
-
-  function updateChoiceOnSelectedNode(choiceId, field, value) {
-    if (!selectedNodeId) return;
-
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === selectedNodeId
-          ? {
-              ...node,
-              data: {
-                ...node.data,
-                choices: (node.data?.choices || []).map((choice) =>
-                  choice.id === choiceId
-                    ? {
-                        ...choice,
-                        [field]: value,
-                      }
-                    : choice
-                ),
-              },
-            }
-          : node
-      )
-    );
-  }
-
-  function removeChoiceFromSelectedNode(choiceId) {
-    if (!selectedNodeId) return;
-
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === selectedNodeId
-          ? {
-              ...node,
-              data: {
-                ...node.data,
-                choices: (node.data?.choices || []).filter(
-                  (choice) => choice.id !== choiceId
-                ),
-              },
-            }
-          : node
-      )
-    );
-  }
-
-  function connectNodesFromHandle(connection) {
-    const { source, target } = connection;
-
-    if (!source || !target || source === target) return;
-
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.id !== source) return node;
+    setNodes((prev) =>
+      prev.map((node) => {
+        if (node.id !== selectedNodeId) return node;
 
         const existingChoices = node.data?.choices || [];
-        const alreadyExists = existingChoices.some(
-          (choice) => choice.targetNodeId === target
-        );
-
-        if (alreadyExists) return node;
 
         return {
           ...node,
@@ -196,9 +158,8 @@ export default function useStoryState() {
             choices: [
               ...existingChoices,
               {
-                id: crypto.randomUUID(),
-                label: "New choice",
-                targetNodeId: target,
+                label: "New Choice",
+                targetNodeId: "",
                 conditions: [],
                 effects: [],
               },
@@ -209,23 +170,138 @@ export default function useStoryState() {
     );
   }
 
+  function updateChoiceOnSelectedNode(index, field, value) {
+    if (!selectedNodeId) return;
+
+    setNodes((prev) =>
+      prev.map((node) => {
+        if (node.id !== selectedNodeId) return node;
+
+        const nextChoices = [...(node.data?.choices || [])];
+        const currentChoice = nextChoices[index];
+
+        if (!currentChoice) return node;
+
+        nextChoices[index] = {
+          ...currentChoice,
+          [field]: value,
+        };
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            choices: nextChoices,
+          },
+        };
+      })
+    );
+  }
+
+  function removeChoiceFromSelectedNode(index) {
+    if (!selectedNodeId) return;
+
+    setNodes((prev) =>
+      prev.map((node) => {
+        if (node.id !== selectedNodeId) return node;
+
+        const nextChoices = [...(node.data?.choices || [])];
+        nextChoices.splice(index, 1);
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            choices: nextChoices,
+          },
+        };
+      })
+    );
+  }
+
+  function connectNodesFromHandle(connection) {
+    const sourceId = connection?.source;
+    const targetId = connection?.target;
+
+    if (!sourceId || !targetId || sourceId === targetId) return;
+
+    setNodes((prevNodes) => {
+      const targetNode = prevNodes.find((node) => node.id === targetId);
+      const targetTitle = targetNode?.data?.title || "Next Block";
+
+      return prevNodes.map((node) => {
+        if (node.id !== sourceId) return node;
+
+        const existingChoices = node.data?.choices || [];
+        const alreadyExists = existingChoices.some(
+          (choice) => choice.targetNodeId === targetId
+        );
+
+        if (alreadyExists) {
+          return node;
+        }
+
+        const nextChoice = {
+          label: makeChoiceLabel(targetTitle),
+          targetNodeId: targetId,
+          conditions: [],
+          effects: [],
+        };
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            choices: [...existingChoices, nextChoice],
+          },
+        };
+      });
+    });
+
+    setSelectedNodeId(sourceId);
+  }
+
+  function deleteEdge(edgeId) {
+    if (!edgeId) return;
+
+    const [sourceId, targetId] = edgeId.split("__");
+
+    if (!sourceId || !targetId) return;
+
+    setNodes((prev) =>
+      prev.map((node) => {
+        if (node.id !== sourceId) return node;
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            choices: (node.data?.choices || []).filter(
+              (choice) => choice.targetNodeId !== targetId
+            ),
+          },
+        };
+      })
+    );
+  }
+
   return {
     nodes,
+    setNodes,
+    edges,
     variables,
     setVariables,
-    edges,
-    selectedNode,
     selectedNodeId,
-    setNodes,
-    onNodesChange,
     setSelectedNodeId,
+    selectedNode,
     addNode,
+    updateNodePosition,
     updateSelectedNodeField,
     deleteSelectedNode,
     addChoiceToSelectedNode,
-    addChoiceToNode,
     updateChoiceOnSelectedNode,
     removeChoiceFromSelectedNode,
     connectNodesFromHandle,
+    deleteEdge,
   };
 }

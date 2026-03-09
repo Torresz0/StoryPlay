@@ -1,18 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
 import { applyEffects } from "../utils/storyLogic";
 
+function cloneVariables(variables) {
+  return { ...(variables || {}) };
+}
+
+function getChangedKeys(previousVars = {}, nextVars = {}) {
+  const keys = new Set([
+    ...Object.keys(previousVars || {}),
+    ...Object.keys(nextVars || {}),
+  ]);
+
+  return [...keys].filter((key) => previousVars[key] !== nextVars[key]);
+}
+
 export default function usePlayState(nodes, selectedNodeId, initialVariables = {}) {
   const [currentPlayNodeId, setCurrentPlayNodeId] = useState(
     selectedNodeId || nodes[0]?.id || null
   );
   const [history, setHistory] = useState([]);
-  const [playVariables, setPlayVariables] = useState(initialVariables || {});
+  const [playVariables, setPlayVariables] = useState(cloneVariables(initialVariables));
+  const [previousPlayVariables, setPreviousPlayVariables] = useState(
+    cloneVariables(initialVariables)
+  );
+  const [changedVariableKeys, setChangedVariableKeys] = useState([]);
 
   useEffect(() => {
     if (!nodes.length) {
       setCurrentPlayNodeId(null);
       setHistory([]);
-      setPlayVariables(initialVariables || {});
+      setPlayVariables(cloneVariables(initialVariables));
+      setPreviousPlayVariables(cloneVariables(initialVariables));
+      setChangedVariableKeys([]);
       return;
     }
 
@@ -23,12 +42,16 @@ export default function usePlayState(nodes, selectedNodeId, initialVariables = {
     if (!playNodeStillExists) {
       setCurrentPlayNodeId(selectedNodeId || nodes[0]?.id || null);
       setHistory([]);
-      setPlayVariables(initialVariables || {});
+      setPlayVariables(cloneVariables(initialVariables));
+      setPreviousPlayVariables(cloneVariables(initialVariables));
+      setChangedVariableKeys([]);
       return;
     }
 
     setHistory((prevHistory) =>
-      prevHistory.filter((id) => nodes.some((node) => node.id === id))
+      prevHistory.filter((entry) =>
+        nodes.some((node) => node.id === entry.nodeId)
+      )
     );
   }, [nodes, currentPlayNodeId, selectedNodeId, initialVariables]);
 
@@ -38,39 +61,59 @@ export default function usePlayState(nodes, selectedNodeId, initialVariables = {
 
   function startFromNode(nodeId) {
     if (!nodeId) return;
+
+    const resetVars = cloneVariables(initialVariables);
+
     setCurrentPlayNodeId(nodeId);
     setHistory([]);
-    setPlayVariables(initialVariables || {});
+    setPlayVariables(resetVars);
+    setPreviousPlayVariables(resetVars);
+    setChangedVariableKeys([]);
   }
 
   function resetToSelected() {
+    const resetVars = cloneVariables(initialVariables);
+
     setCurrentPlayNodeId(selectedNodeId || nodes[0]?.id || null);
     setHistory([]);
-    setPlayVariables(initialVariables || {});
+    setPlayVariables(resetVars);
+    setPreviousPlayVariables(resetVars);
+    setChangedVariableKeys([]);
   }
 
   function goToNode(nodeId, effects = []) {
     if (!nodeId || nodeId === currentPlayNodeId) return;
 
-    setHistory((prev) => {
-      if (!currentPlayNodeId) return prev;
-      return [...prev, currentPlayNodeId];
-    });
+    const beforeVars = cloneVariables(playVariables);
+    const afterVars = applyEffects(effects || [], beforeVars);
 
-    setPlayVariables((prev) => applyEffects(effects || [], prev || {}));
+    setHistory((prev) => [
+      ...prev,
+      {
+        nodeId: currentPlayNodeId,
+        variables: beforeVars,
+      },
+    ]);
+
+    setPreviousPlayVariables(beforeVars);
+    setPlayVariables(afterVars);
+    setChangedVariableKeys(getChangedKeys(beforeVars, afterVars));
     setCurrentPlayNodeId(nodeId);
   }
 
   function goBack() {
-    setHistory((prev) => {
-      if (!prev.length) return prev;
+    if (!history.length) return;
 
-      const nextHistory = [...prev];
-      const previousNodeId = nextHistory.pop();
+    const nextHistory = [...history];
+    const previousEntry = nextHistory.pop();
 
-      setCurrentPlayNodeId(previousNodeId || null);
-      return nextHistory;
-    });
+    setHistory(nextHistory);
+    setCurrentPlayNodeId(previousEntry?.nodeId || null);
+    setPreviousPlayVariables(cloneVariables(playVariables));
+    setPlayVariables(cloneVariables(previousEntry?.variables || initialVariables));
+    setChangedVariableKeys(
+      getChangedKeys(playVariables, previousEntry?.variables || initialVariables)
+    );
   }
 
   return {
@@ -78,6 +121,8 @@ export default function usePlayState(nodes, selectedNodeId, initialVariables = {
     currentPlayNode,
     history,
     playVariables,
+    previousPlayVariables,
+    changedVariableKeys,
     startFromNode,
     resetToSelected,
     goToNode,

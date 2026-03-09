@@ -9,6 +9,8 @@ export default function StoryPreview({
   currentPlayNode,
   history,
   playVariables,
+  previousPlayVariables,
+  changedVariableKeys,
   startFromNode,
   resetToSelected,
   goToNode,
@@ -24,7 +26,6 @@ export default function StoryPreview({
 
   const playNodeData = currentPlayNode?.data || null;
   const playChoices = playNodeData?.choices || [];
-
   const visibleChoices = playChoices.filter((choice) =>
     evaluateConditions(choice.conditions || [], playVariables || {})
   );
@@ -32,7 +33,9 @@ export default function StoryPreview({
   return (
     <div className="preview-story">
       <div className="preview-header-row">
-        <h2 className="section-title">Play Preview</h2>
+        <h2 className="section-title" style={{ marginBottom: 0 }}>
+          Play Preview
+        </h2>
 
         <div className="preview-toolbar">
           <button
@@ -51,33 +54,58 @@ export default function StoryPreview({
             Back
           </button>
 
-          <button
-            className="toolbar-button"
-            onClick={resetToSelected}
-            disabled={!selectedNodeId}
-          >
+          <button className="toolbar-button" onClick={resetToSelected}>
             Reset
           </button>
         </div>
       </div>
 
-      <div className="helper-box">
-        <strong>Variables</strong>
-        <div style={{ marginTop: 8 }}>
-          {Object.keys(playVariables || {}).length === 0 ? (
-            <div className="muted">No variables defined.</div>
-          ) : (
-            Object.entries(playVariables).map(([key, value]) => (
-              <div key={key}>
-                {key}: {String(value)}
-              </div>
-            ))
-          )}
-        </div>
+      <div className="preview-block">
+        <h3 className="preview-title">Variables</h3>
+
+        {Object.keys(playVariables || {}).length === 0 ? (
+          <div className="muted">No variables defined.</div>
+        ) : (
+          <div className="variable-debugger-list">
+            {Object.entries(playVariables).map(([key, value]) => {
+              const changed = changedVariableKeys?.includes(key);
+              const previousValue = previousPlayVariables?.[key];
+
+              return (
+                <div
+                  key={key}
+                  className={`variable-debugger-item ${
+                    changed ? "changed" : ""
+                  }`}
+                >
+                  <div className="variable-debugger-key">{key}</div>
+
+                  <div className="variable-debugger-value">
+                    {changed ? (
+                      <>
+                        <span className="variable-debugger-old">
+                          {String(previousValue)}
+                        </span>
+                        <span className="variable-debugger-arrow">→</span>
+                        <span className="variable-debugger-new">
+                          {String(value)}
+                        </span>
+                      </>
+                    ) : (
+                      <span>{String(value)}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {!currentPlayNode ? (
-        <p className="muted">No story block available to play.</p>
+        <div className="preview-block">
+          <div className="muted">No story block available to play.</div>
+        </div>
       ) : (
         <div className="preview-block">
           <h3 className="preview-title">
@@ -88,17 +116,17 @@ export default function StoryPreview({
             {playNodeData?.content || "No content yet."}
           </div>
 
-          <div className="helper-box" style={{ marginTop: 14 }}>
-            <strong>Block type:</strong> {playNodeData?.blockType || "narrative"}
+          <div className="helper-box" style={{ marginTop: 12 }}>
+            Block type: {playNodeData?.blockType || "narrative"}
           </div>
 
           <div className="preview-choice-list">
             {visibleChoices.length === 0 ? (
-              <div className="preview-choice">No available choices.</div>
+              <div className="muted">No available choices.</div>
             ) : (
-              visibleChoices.map((choice) => (
+              visibleChoices.map((choice, index) => (
                 <PlayChoiceButton
-                  key={choice.id}
+                  key={`${choice.targetNodeId}-${index}`}
                   choice={choice}
                   targetNode={nodesById[choice.targetNodeId]}
                   onChoose={() =>

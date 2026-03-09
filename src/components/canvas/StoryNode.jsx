@@ -1,7 +1,7 @@
 import { Handle, Position } from "reactflow";
 
 const BLOCK_TYPE_ICONS = {
-  narrative: "📖",
+  narrative: "◻",
   chat: "💬",
   timed: "⏱",
   ending: "🏁",
@@ -79,7 +79,6 @@ function buildChoiceTitle(choice) {
 function summarizeGraphIssues(issues = []) {
   const hasError = issues.some((issue) => issue.severity === "error");
   const hasWarning = issues.some((issue) => issue.severity === "warning");
-
   const labels = [];
 
   if (hasError) labels.push("error");
@@ -93,9 +92,10 @@ export default function StoryNode({ id, data, selected }) {
   const content = data?.content || "";
   const blockType = data?.blockType || "narrative";
   const choices = data?.choices || [];
-  const icon = BLOCK_TYPE_ICONS[blockType] || "📄";
+  const icon = BLOCK_TYPE_ICONS[blockType] || "◻";
   const indicators = collectIndicators(data);
   const graphIssueLabels = summarizeGraphIssues(data?.graphIssues || []);
+  const playState = data?.playState || "idle";
 
   const headerClass = `node-card-header ${
     blockType === "chat"
@@ -118,7 +118,6 @@ export default function StoryNode({ id, data, selected }) {
 
     if (choice?.targetNodeId) {
       data?.onSelectNode?.(choice.targetNodeId);
-
       if (data?.onCenterNode) {
         data.onCenterNode(choice.targetNodeId);
       }
@@ -128,16 +127,26 @@ export default function StoryNode({ id, data, selected }) {
   }
 
   return (
-    <div className={`node-card ${selected ? "selected" : ""}`}>
+    <div
+      className={[
+        "node-card",
+        selected ? "selected" : "",
+        playState === "playing" ? "playing" : "",
+        playState === "reachable" ? "reachable" : "",
+        playState === "locked" ? "locked" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <Handle
         type="target"
         position={Position.Left}
         className="story-handle"
+        isConnectable={true}
       />
 
       <div className={headerClass}>
-        <span style={{ marginRight: 8 }}>{icon}</span>
-        <span>{title}</span>
+        {icon} {title}
       </div>
 
       <div className="node-card-body">
@@ -157,7 +166,9 @@ export default function StoryNode({ id, data, selected }) {
             {graphIssueLabels.map((label) => (
               <span
                 key={label}
-                className={`node-issue-badge node-issue-${label}`}
+                className={`node-issue-badge ${
+                  label === "error" ? "node-issue-error" : "node-issue-warning"
+                }`}
               >
                 {label === "error" ? "✕ issue" : "⚠ issue"}
               </span>
@@ -178,24 +189,31 @@ export default function StoryNode({ id, data, selected }) {
           </div>
         )}
 
-        <div className="node-choice-strip">
-          {choices.slice(0, 3).map((choice) => (
-            <button
-              key={choice.id}
-              className="node-choice-chip"
-              onClick={(event) => handleChoiceClick(event, choice)}
-              title={buildChoiceTitle(choice)}
-            >
-              {choice.label || "Untitled choice"}
-            </button>
-          ))}
+        {choices.length > 0 && (
+          <div className="node-choice-strip">
+            {choices.slice(0, 3).map((choice, index) => (
+              <button
+                key={`${choice.label || "choice"}-${choice.targetNodeId || "none"}-${index}`}
+                className="node-choice-chip"
+                onClick={(event) => handleChoiceClick(event, choice)}
+                title={buildChoiceTitle(choice)}
+                type="button"
+              >
+                {choice.label || "Untitled choice"}
+              </button>
+            ))}
 
-          {choices.length > 3 && (
-            <div className="node-choice-more">+{choices.length - 3} more</div>
-          )}
-        </div>
+            {choices.length > 3 && (
+              <span className="node-choice-more">+{choices.length - 3} more</span>
+            )}
+          </div>
+        )}
 
-        <button className="node-add-choice-button" onClick={handleAddChoice}>
+        <button
+          className="node-add-choice-button"
+          onClick={handleAddChoice}
+          type="button"
+        >
           + Choice
         </button>
       </div>
@@ -204,6 +222,7 @@ export default function StoryNode({ id, data, selected }) {
         type="source"
         position={Position.Right}
         className="story-handle"
+        isConnectable={true}
       />
     </div>
   );

@@ -26,7 +26,11 @@ export default function App() {
 
       <main className="app-workspace">
         <section className="panel canvas-panel">
-          <StoryCanvas {...story} {...play} />
+          <StoryCanvas
+            {...story}
+            currentPlayNodeId={play.currentPlayNodeId}
+            playVariables={play.playVariables}
+          />
         </section>
 
         <aside className="panel sidebar-panel">

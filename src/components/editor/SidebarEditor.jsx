@@ -15,8 +15,8 @@ export default function SidebarEditor({
 }) {
   if (!selectedNode) {
     return (
-      <div className="sidebar">
-        <h2>Block Editor</h2>
+      <div>
+        <h2 className="section-title">Block Editor</h2>
 
         <div className="helper-box">
           Select a story block on the canvas.
@@ -38,36 +38,42 @@ export default function SidebarEditor({
     selectedNode.data || {};
 
   return (
-    <div className="sidebar">
-      <h2>Block Editor</h2>
+    <div>
+      <h2 className="section-title">Block Editor</h2>
 
-      <label className="field-label">Title</label>
-      <input
-        className="text-input"
-        value={title}
-        onChange={(e) => updateSelectedNodeField("title", e.target.value)}
-        placeholder="Enter block title"
-      />
+      <div className="form-group">
+        <label className="form-label">Title</label>
+        <input
+          className="form-input"
+          value={title}
+          onChange={(e) => updateSelectedNodeField("title", e.target.value)}
+          placeholder="Enter block title"
+        />
+      </div>
 
-      <label className="field-label">Block Type</label>
-      <select
-        className="select-input"
-        value={blockType}
-        onChange={(e) => updateSelectedNodeField("blockType", e.target.value)}
-      >
-        <option value="narrative">Narrative</option>
-        <option value="chat">Chat</option>
-        <option value="timed">Timed</option>
-        <option value="ending">Ending</option>
-      </select>
+      <div className="form-group">
+        <label className="form-label">Block Type</label>
+        <select
+          className="form-select"
+          value={blockType}
+          onChange={(e) => updateSelectedNodeField("blockType", e.target.value)}
+        >
+          <option value="narrative">Narrative</option>
+          <option value="chat">Chat</option>
+          <option value="timed">Timed</option>
+          <option value="ending">Ending</option>
+        </select>
+      </div>
 
-      <label className="field-label">Content</label>
-      <textarea
-        className="textarea-input"
-        value={content}
-        onChange={(e) => updateSelectedNodeField("content", e.target.value)}
-        placeholder="Write the story text for this block..."
-      />
+      <div className="form-group">
+        <label className="form-label">Content</label>
+        <textarea
+          className="form-textarea"
+          value={content}
+          onChange={(e) => updateSelectedNodeField("content", e.target.value)}
+          placeholder="Write the story text for this block..."
+        />
+      </div>
 
       <ChoicesEditor
         selectedNode={selectedNode}

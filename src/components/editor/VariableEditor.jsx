@@ -5,9 +5,7 @@ function detectType(value) {
 }
 
 function coerceValue(type, rawValue) {
-  if (type === "boolean") {
-    return rawValue === "true" || rawValue === true;
-  }
+  if (type === "boolean") return rawValue === "true" || rawValue === true;
 
   if (type === "number") {
     const n = Number(rawValue);
@@ -18,21 +16,17 @@ function coerceValue(type, rawValue) {
 }
 
 export default function VariableEditor({ variables = {}, setVariables }) {
-  const entries = Object.entries(variables);
+  const entries = Object.entries(variables || {});
 
   function addVariable() {
-    let baseName = "newVariable";
-    let nextName = baseName;
-    let count = 1;
+    let name = "variable";
+    let i = 1;
 
-    while (Object.prototype.hasOwnProperty.call(variables, nextName)) {
-      count += 1;
-      nextName = `${baseName}${count}`;
-    }
+    while (variables[name + i]) i++;
 
     setVariables({
       ...variables,
-      [nextName]: "",
+      [name + i]: ""
     });
   }
 
@@ -46,15 +40,13 @@ export default function VariableEditor({ variables = {}, setVariables }) {
     const trimmed = newKey.trim();
 
     if (!trimmed || trimmed === oldKey) return;
-    if (Object.prototype.hasOwnProperty.call(variables, trimmed)) return;
+    if (variables[trimmed]) return;
 
     const next = {};
-    for (const [key, value] of Object.entries(variables)) {
-      if (key === oldKey) {
-        next[trimmed] = value;
-      } else {
-        next[key] = value;
-      }
+
+    for (const [k, v] of Object.entries(variables)) {
+      if (k === oldKey) next[trimmed] = v;
+      else next[k] = v;
     }
 
     setVariables(next);
@@ -63,118 +55,125 @@ export default function VariableEditor({ variables = {}, setVariables }) {
   function updateVariableValue(key, value) {
     setVariables({
       ...variables,
-      [key]: value,
+      [key]: value
     });
   }
 
-  function changeVariableType(key, nextType) {
-    const currentValue = variables[key];
-    let nextValue = "";
+  function changeVariableType(key, type) {
+    const value = variables[key];
 
-    if (nextType === "boolean") {
-      nextValue = Boolean(currentValue);
-    } else if (nextType === "number") {
-      nextValue = Number(currentValue);
-      if (Number.isNaN(nextValue)) nextValue = 0;
-    } else {
-      nextValue =
-        currentValue === null || currentValue === undefined
-          ? ""
-          : String(currentValue);
-    }
+    let newValue = "";
+
+    if (type === "boolean") newValue = Boolean(value);
+    else if (type === "number") newValue = Number(value) || 0;
+    else newValue = value?.toString() ?? "";
 
     setVariables({
       ...variables,
-      [key]: nextValue,
+      [key]: newValue
     });
   }
 
   return (
-    <div className="sidebar-section">
-      <div className="section-header">
+    <div className="editor-section">
+
+      <div className="editor-section-header">
         <h3>Variables</h3>
-        <button className="secondary-button" onClick={addVariable}>
+
+        <button
+          className="toolbar-button"
+          onClick={addVariable}
+        >
           + Add Variable
         </button>
       </div>
 
-      {entries.length === 0 ? (
+      {entries.length === 0 && (
         <div className="helper-box">
-          No variables yet. Add things like <strong>health</strong>,{" "}
-          <strong>gold</strong>, or <strong>hasKey</strong>.
-        </div>
-      ) : (
-        <div className="variable-list">
-          {entries.map(([key, value]) => {
-            const type = detectType(value);
-
-            return (
-              <div key={key} className="choice-card variable-card">
-                <div className="variable-row">
-                  <label className="field-label">Name</label>
-                  <input
-                    className="text-input"
-                    defaultValue={key}
-                    onBlur={(e) => renameVariable(key, e.target.value)}
-                    placeholder="Variable name"
-                  />
-                </div>
-
-                <div className="variable-row">
-                  <label className="field-label">Type</label>
-                  <select
-                    className="select-input"
-                    value={type}
-                    onChange={(e) => changeVariableType(key, e.target.value)}
-                  >
-                    <option value="string">string</option>
-                    <option value="number">number</option>
-                    <option value="boolean">boolean</option>
-                  </select>
-                </div>
-
-                <div className="variable-row">
-                  <label className="field-label">Value</label>
-
-                  {type === "boolean" ? (
-                    <select
-                      className="select-input"
-                      value={String(value)}
-                      onChange={(e) =>
-                        updateVariableValue(key, coerceValue("boolean", e.target.value))
-                      }
-                    >
-                      <option value="true">true</option>
-                      <option value="false">false</option>
-                    </select>
-                  ) : (
-                    <input
-                      className="text-input"
-                      type={type === "number" ? "number" : "text"}
-                      value={value}
-                      onChange={(e) =>
-                        updateVariableValue(
-                          key,
-                          coerceValue(type, e.target.value)
-                        )
-                      }
-                    />
-                  )}
-                </div>
-
-                <div style={{ marginTop: 10 }}>
-                  <button
-                    className="danger-button"
-                    onClick={() => removeVariable(key)}
-                  >
-                    Delete Variable
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          No variables yet.  
+          Try creating <b>health</b>, <b>gold</b>, or <b>hasKey</b>.
         </div>
       )}
+
+      <div className="choice-list">
+
+        {entries.map(([key, value]) => {
+
+          const type = detectType(value);
+
+          return (
+            <div key={key} className="choice-row">
+
+              <div className="form-group">
+                <label className="form-label">Name</label>
+
+                <input
+                  className="form-input"
+                  defaultValue={key}
+                  onBlur={(e) => renameVariable(key, e.target.value)}
+                />
+              </div>
+
+
+              <div className="form-group">
+                <label className="form-label">Type</label>
+
+                <select
+                  className="form-select"
+                  value={type}
+                  onChange={(e) => changeVariableType(key, e.target.value)}
+                >
+                  <option value="string">string</option>
+                  <option value="number">number</option>
+                  <option value="boolean">boolean</option>
+                </select>
+              </div>
+
+
+              <div className="form-group">
+                <label className="form-label">Value</label>
+
+                {type === "boolean" ? (
+                  <select
+                    className="form-select"
+                    value={String(value)}
+                    onChange={(e) =>
+                      updateVariableValue(
+                        key,
+                        coerceValue("boolean", e.target.value)
+                      )
+                    }
+                  >
+                    <option value="true">true</option>
+                    <option value="false">false</option>
+                  </select>
+                ) : (
+                  <input
+                    className="form-input"
+                    type={type === "number" ? "number" : "text"}
+                    value={value}
+                    onChange={(e) =>
+                      updateVariableValue(
+                        key,
+                        coerceValue(type, e.target.value)
+                      )
+                    }
+                  />
+                )}
+              </div>
+
+              <button
+                className="danger-button"
+                onClick={() => removeVariable(key)}
+              >
+                Delete Variable
+              </button>
+
+            </div>
+          );
+        })}
+      </div>
+
     </div>
   );
 }

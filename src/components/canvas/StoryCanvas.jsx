@@ -1,148 +1,201 @@
-import { useEffect, useMemo } from "react";
-import {
+import { useMemo, useCallback, useEffect } from "react";
+import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  MarkerType,
-  ReactFlow,
-  ReactFlowProvider,
-  useReactFlow,
+  useNodesState,
+  useEdgesState,
 } from "reactflow";
+import "reactflow/dist/style.css";
+
 import StoryNode from "./StoryNode";
+import StoryEdge from "./StoryEdge";
 import NodeSearchBar from "./NodeSearchBar";
-import { analyzeStoryGraph, groupIssuesByNode } from "../../utils/graphHealth";
+import { evaluateConditions } from "../../utils/storyLogic";
 
 const nodeTypes = {
   storyNode: StoryNode,
 };
 
-function StoryCanvasInner({
-  nodes,
-  edges,
-  variables,
+const edgeTypes = {
+  storyEdge: StoryEdge,
+};
+
+export default function StoryCanvas({
+  nodes = [],
+  edges = [],
   selectedNodeId,
-  onNodesChange,
   setSelectedNodeId,
   addNode,
-  addChoiceToNode,
+  updateNodePosition,
   connectNodesFromHandle,
+  deleteEdge,
   currentPlayNodeId,
+  playVariables = {},
 }) {
-  const { screenToFlowPosition, setCenter, getNode } = useReactFlow();
+  const [rfNodes, setRfNodes, onNodesChange] = useNodesState([]);
+  const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState([]);
 
-  const styledEdges = useMemo(() => {
-    return edges.map((edge) => ({
-      ...edge,
-      animated: true,
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-      },
-      style: {
-        strokeWidth: 2,
-      },
-      labelStyle: {
-        fill: "#e5e7eb",
-        fontWeight: 600,
-      },
-    }));
-  }, [edges]);
-
-  const nodeIssueMap = useMemo(() => {
-    const issues = analyzeStoryGraph(nodes, variables);
-    return groupIssuesByNode(issues);
-  }, [nodes, variables]);
-
-  function centerOnNode(nodeId) {
-    const node = getNode(nodeId);
-    if (!node) return;
-
-    const width = node.width ?? 220;
-    const height = node.height ?? 120;
-
-    const centerX = node.position.x + width / 2;
-    const centerY = node.position.y + height / 2;
-
-    setCenter(centerX, centerY, {
-      zoom: 1.2,
-      duration: 300,
+  const nodesById = useMemo(() => {
+    const map = {};
+    nodes.forEach((node) => {
+      map[node.id] = node;
     });
-  }
+    return map;
+  }, [nodes]);
 
-  useEffect(() => {
-    if (selectedNodeId) {
-      centerOnNode(selectedNodeId);
+  const playStateMap = useMemo(() => {
+    const map = {};
+
+    if (!currentPlayNodeId || !nodesById[currentPlayNodeId]) {
+      return map;
     }
-  }, [selectedNodeId]);
 
-  function jumpToNode(nodeId) {
-    setSelectedNodeId(nodeId);
-    centerOnNode(nodeId);
-  }
+    map[currentPlayNodeId] = "playing";
 
-  const canvasNodes = useMemo(() => {
+    const currentNode = nodesById[currentPlayNodeId];
+    const choices = currentNode?.data?.choices || [];
+
+    choices.forEach((choice) => {
+      const targetId = choice.targetNodeId;
+      if (!targetId) return;
+
+      const allowed = evaluateConditions(
+        choice.conditions || [],
+        playVariables || {}
+      );
+
+      if (!map[targetId]) {
+        map[targetId] = allowed ? "reachable" : "locked";
+      }
+    });
+
+    return map;
+  }, [currentPlayNodeId, nodesById, playVariables]);
+
+  const hydratedNodes = useMemo(() => {
     return nodes.map((node) => ({
       ...node,
+      type: "storyNode",
+      selected: node.id === selectedNodeId,
       data: {
         ...node.data,
-        onSelectNode: setSelectedNodeId,
-        onAddChoice: addChoiceToNode,
-        onCenterNode: centerOnNode,
-        graphIssues: nodeIssueMap[node.id] || [],
+        isSelected: node.id === selectedNodeId,
+        playState: playStateMap[node.id] || "idle",
       },
-      className: node.id === currentPlayNodeId ? "playing-node" : "",
     }));
-  }, [
-    nodes,
-    setSelectedNodeId,
-    addChoiceToNode,
-    currentPlayNodeId,
-    nodeIssueMap,
-  ]);
+  }, [nodes, selectedNodeId, playStateMap]);
 
-  function handlePaneDoubleClick(event) {
-    const position = screenToFlowPosition({
-      x: event.clientX,
-      y: event.clientY,
+  const hydratedEdges = useMemo(() => {
+    return edges.map((edge) => {
+      let playState = "idle";
+
+      if (edge.source === currentPlayNodeId) {
+        const sourceNode = nodesById[edge.source];
+        const matchingChoice = (sourceNode?.data?.choices || []).find(
+          (choice) => choice.targetNodeId === edge.target
+        );
+
+        if (matchingChoice) {
+          const allowed = evaluateConditions(
+            matchingChoice.conditions || [],
+            playVariables || {}
+          );
+
+          playState = allowed ? "reachable" : "blocked";
+        }
+      }
+
+      return {
+        ...edge,
+        type: "storyEdge",
+        data: {
+          ...(edge.data || {}),
+          playState,
+        },
+      };
     });
+  }, [edges, currentPlayNodeId, nodesById, playVariables]);
 
-    addNode(position);
-  }
+  useEffect(() => {
+    setRfNodes(hydratedNodes);
+  }, [hydratedNodes, setRfNodes]);
+
+  useEffect(() => {
+    setRfEdges(hydratedEdges);
+  }, [hydratedEdges, setRfEdges]);
+
+  const onNodeClick = useCallback(
+    (_, node) => {
+      setSelectedNodeId?.(node.id);
+    },
+    [setSelectedNodeId]
+  );
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNodeId?.(null);
+  }, [setSelectedNodeId]);
+
+  const onNodeDragStop = useCallback(
+    (_, node) => {
+      updateNodePosition?.(node.id, node.position);
+    },
+    [updateNodePosition]
+  );
+
+  const onConnect = useCallback(
+    (params) => {
+      if (!params.source || !params.target) return;
+      if (params.source === params.target) return;
+
+      connectNodesFromHandle?.(params);
+    },
+    [connectNodesFromHandle]
+  );
+
+  const handleDeleteSelectedEdge = useCallback(() => {
+    const selectedEdge = rfEdges.find((edge) => edge.selected);
+    if (selectedEdge) {
+      deleteEdge?.(selectedEdge.id);
+    }
+  }, [rfEdges, deleteEdge]);
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative" }}>
+    <>
       <div className="canvas-toolbar">
-        <button className="toolbar-button" onClick={() => addNode()}>
+        <button className="toolbar-button" onClick={addNode}>
           + Add Block
+        </button>
+
+        <button className="toolbar-button" onClick={handleDeleteSelectedEdge}>
+          Delete Selected Edge
         </button>
       </div>
 
       <div className="canvas-searchbar-wrap">
-        <NodeSearchBar nodes={nodes} onJumpToNode={jumpToNode} />
+        <NodeSearchBar
+          nodes={nodes}
+          onSelectNode={(nodeId) => setSelectedNodeId?.(nodeId)}
+        />
       </div>
 
       <ReactFlow
-        nodes={canvasNodes}
-        edges={styledEdges}
-        nodeTypes={nodeTypes}
+        nodes={rfNodes}
+        edges={rfEdges}
         onNodesChange={onNodesChange}
-        onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-        onPaneClick={() => setSelectedNodeId(null)}
-        onPaneDoubleClick={handlePaneDoubleClick}
-        onConnect={connectNodesFromHandle}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
+        onNodeDragStop={onNodeDragStop}
+        onConnect={onConnect}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
       >
-        <MiniMap zoomable pannable />
-        <Background gap={24} size={1} />
+        <Background />
         <Controls />
+        <MiniMap zoomable pannable />
       </ReactFlow>
-    </div>
-  );
-}
-
-export default function StoryCanvas(props) {
-  return (
-    <ReactFlowProvider>
-      <StoryCanvasInner {...props} />
-    </ReactFlowProvider>
+    </>
   );
 }
