@@ -48,12 +48,14 @@ export function analyzeStoryGraph(nodes = [], variables = {}) {
         issues.push({
           severity: "warning",
           nodeId: node.id,
+          code: "missing-target",
           message: `Choice "${choice.label || "Untitled choice"}" has no target.`,
         });
       } else if (!nodeMap.has(choice.targetNodeId)) {
         issues.push({
           severity: "error",
           nodeId: node.id,
+          code: "missing-node",
           message: `Choice "${choice.label || "Untitled choice"}" points to a missing node.`,
         });
       } else {
@@ -68,6 +70,7 @@ export function analyzeStoryGraph(nodes = [], variables = {}) {
           issues.push({
             severity: "warning",
             nodeId: node.id,
+            code: "undefined-variable-condition",
             message: `Choice "${choice.label || "Untitled choice"}" uses undefined variable "${condition.variable}" in a condition.`,
           });
         }
@@ -78,6 +81,7 @@ export function analyzeStoryGraph(nodes = [], variables = {}) {
           issues.push({
             severity: "warning",
             nodeId: node.id,
+            code: "undefined-variable-effect",
             message: `Choice "${choice.label || "Untitled choice"}" uses undefined variable "${effect.variable}" in an effect.`,
           });
         }
@@ -89,6 +93,7 @@ export function analyzeStoryGraph(nodes = [], variables = {}) {
         issues.push({
           severity: "warning",
           nodeId: node.id,
+          code: "undefined-variable-enter-effect",
           message: `Node "${node.data?.title || node.id}" uses undefined variable "${effect.variable}" in enterEffects.`,
         });
       }
@@ -99,6 +104,7 @@ export function analyzeStoryGraph(nodes = [], variables = {}) {
       issues.push({
         severity: "warning",
         nodeId: node.id,
+        code: "no-exits",
         message: `Node "${node.data?.title || node.id}" has no outgoing choices.`,
       });
     }
@@ -111,6 +117,7 @@ export function analyzeStoryGraph(nodes = [], variables = {}) {
       issues.push({
         severity: "warning",
         nodeId: node.id,
+        code: "unreachable",
         message: `Node "${node.data?.title || node.id}" is unreachable from the start node.`,
       });
     }
@@ -124,6 +131,7 @@ export function analyzeStoryGraph(nodes = [], variables = {}) {
       issues.push({
         severity: "warning",
         nodeId: node.id,
+        code: "no-incoming",
         message: `Node "${node.data?.title || node.id}" has no incoming choices.`,
       });
     }
@@ -137,4 +145,18 @@ export function analyzeStoryGraph(nodes = [], variables = {}) {
   }
 
   return issues;
+}
+
+export function groupIssuesByNode(issues = []) {
+  const map = {};
+
+  for (const issue of issues) {
+    if (!issue.nodeId) continue;
+    if (!map[issue.nodeId]) {
+      map[issue.nodeId] = [];
+    }
+    map[issue.nodeId].push(issue);
+  }
+
+  return map;
 }
