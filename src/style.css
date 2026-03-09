@@ -565,3 +565,189 @@ mark {
     min-height: 280px;
   }
 }
+
+.node-indicator-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.node-indicator {
+  font-size: 0.68rem;
+  border-radius: 999px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+.node-indicator-requires {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.node-indicator-effects {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+.node-indicator-enter {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+.diagnostics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.diagnostic-item {
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.diagnostic-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.diagnostic-message {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+}
+
+.diagnostic-error .diagnostic-badge {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.diagnostic-warning .diagnostic-badge {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+.diagnostic-success .diagnostic-badge {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+.node-issue-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.node-issue-badge {
+  font-size: 0.68rem;
+  border-radius: 999px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+
+.node-issue-error {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.node-issue-warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+.node-indicator-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.node-indicator {
+  font-size: 0.68rem;
+  border-radius: 999px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+.node-indicator-requires {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.node-indicator-effects {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+.node-indicator-enter {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+.diagnostics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.diagnostic-item {
+  width: 100%;
+  text-align: left;
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.7);
+  color: inherit;
+}
+
+.diagnostic-clickable {
+  cursor: pointer;
+}
+
+.diagnostic-clickable:hover {
+  background: rgba(30, 41, 59, 0.92);
+  transform: translateY(-1px);
+}
+
+.diagnostic-item:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.diagnostic-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.diagnostic-message {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+}
+
+.diagnostic-error .diagnostic-badge {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.diagnostic-warning .diagnostic-badge {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+.diagnostic-success .diagnostic-badge {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
